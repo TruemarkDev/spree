@@ -75,6 +75,7 @@ module Spree
     has_many :orders, through: :line_items
 
     has_many :variant_images, -> { order(:position) }, source: :images, through: :variants_including_master
+    has_many :variant_images_without_master, -> { order(:position) }, source: :images, through: :variants
 
     after_create :add_associations_from_prototype
     after_create :build_variants_from_option_values_hash, if: :option_values_hash
@@ -110,19 +111,19 @@ module Spree
 
     alias options product_option_types
 
-    self.whitelisted_ransackable_associations = %w[stores variants_including_master master variants]
+    self.whitelisted_ransackable_associations = %w[taxons stores variants_including_master master variants]
     self.whitelisted_ransackable_attributes = %w[description name slug discontinue_on]
-    self.whitelisted_ransackable_scopes = %w[not_discontinued]
+    self.whitelisted_ransackable_scopes = %w[not_discontinued search_by_name]
 
     [
       :sku, :price, :currency, :weight, :height, :width, :depth, :is_master,
-      :cost_currency, :price_in, :amount_in, :cost_price
+      :cost_currency, :price_in, :amount_in, :cost_price, :compare_at_price
     ].each do |method_name|
       delegate method_name, :"#{method_name}=", to: :find_or_build_master
     end
 
     delegate :display_amount, :display_price, :has_default_price?,
-             :images, to: :find_or_build_master
+             :display_compare_at_price, :images, to: :find_or_build_master
 
     alias master_images images
 
@@ -150,10 +151,26 @@ module Spree
       variants.any?
     end
 
+    # Returns default Variant for Product
+    # If `track_inventory_levels` is enabled it will try to find the first Variant
+    # in stock or backorderable, if there's none it will return first Variant sorted
+    # by `position` attribute
+    # If `track_inventory_levels` is disabled it will return first Variant sorted
+    # by `position` attribute
+    #
+    # @return [Spree::Variant]
     def default_variant
-      has_variants? ? variants.first : master
+      Rails.cache.fetch(default_variant_cache_key) do
+        if Spree::Config[:track_inventory_levels] && variants.in_stock_or_backorderable.any?
+          variants.in_stock_or_backorderable.first
+        else
+          has_variants? ? variants.first : master
+        end
+      end
     end
 
+    # Returns default Variant ID for Product
+    # @return [Integer]
     def default_variant_id
       default_variant.id
     end
@@ -233,15 +250,21 @@ module Spree
       where conditions.inject(:or)
     end
 
+    def self.search_by_name(query)
+      if defined?(SpreeGlobalize)
+        joins(:translations).order(:name).where("LOWER(#{Product::Translation.table_name}.name) LIKE LOWER(:query)", query: "%#{query}%").distinct
+      else
+        where("LOWER(#{Product.table_name}.name) LIKE LOWER(:query)", query: "%#{query}%")
+      end
+    end
+
     # Suitable for displaying only variants that has at least one option value.
     # There may be scenarios where an option type is removed and along with it
     # all option values. At that point all variants associated with only those
     # values should not be displayed to frontend users. Otherwise it breaks the
     # idea of having variants
     def variants_and_option_values(current_currency = nil)
-      variants.includes(:option_values).active(current_currency).select do |variant|
-        variant.option_values.any?
-      end
+      variants.active(current_currency).joins(:option_value_variants)
     end
 
     def empty_option_values?
@@ -324,7 +347,11 @@ module Spree
           price: master.price
         )
       end
-      throw(:abort) unless save
+      save
+    end
+
+    def default_variant_cache_key
+      "spree/default-variant/#{cache_key_with_version}/#{Spree::Config[:track_inventory_levels]}"
     end
 
     def ensure_master

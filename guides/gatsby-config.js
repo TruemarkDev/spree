@@ -10,15 +10,15 @@ module.exports = {
   plugins: [
     'gatsby-plugin-sitemap',
     'gatsby-plugin-react-helmet',
-    'gatsby-transformer-remark',
     {
-      resolve: 'gatsby-plugin-robots-txt',
+      resolve: 'gatsby-plugin-react-helmet-canonical-urls',
       options: {
-        host: 'https://guides.spreecommerce.org',
-        sitemap: 'https://guides.spreecommerce.org/sitemap.xml',
-        policy: [{ userAgent: '*', disallow: ['/'] }]
-      }
+        siteUrl: 'https://guides.spreecommerce.org',
+        noQueryString: true
+      },
     },
+    'gatsby-transformer-remark',
+    'gatsby-plugin-robots-txt',
     {
       resolve: `gatsby-plugin-google-gtag`,
       options: {

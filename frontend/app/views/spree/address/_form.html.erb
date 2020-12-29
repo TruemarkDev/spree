@@ -35,7 +35,6 @@
     <% end %>
     <%= form.text_field :city, class: 'form-control', required: true %>
   </div>
-
   <div class="form-group" id=<%="#{address_id}country" %>>
     <%= form.label :country_id do %>
       <%= Spree.t(:country) %><abbr class="required" title="required">*</abbr>
@@ -56,11 +55,11 @@
          form.collection_select(:state_id, address.country.states,
                             :id, :name,
                             {include_blank: true},
-                            {class: have_states ? 'form-control' : 'hidden',
+                            {class: have_states ? 'form-control' : 'form-control hidden',
                             required: have_states,
                             disabled: !have_states}) +
          form.text_field(:state_name,
-                            class: !have_states ? 'form-control' : 'hidden',
+                            class: !have_states ? 'form-control' : 'form-control hidden',
                             required: !have_states,
                             disabled: have_states)
          ].join.gsub('"', "'").gsub("\n", "")
@@ -77,8 +76,6 @@
     <% end %>
     <%= form.text_field :zipcode, class: 'form-control', required: address.require_zipcode? %>
   </div>
-
-
   <div class="form-group" id=<%="#{address_id}phone" %>>
     <%= form.label :phone do %>
       <%= Spree.t(:phone) %><% if address.require_phone? %><abbr class="required" title="required">*</abbr><% end %>

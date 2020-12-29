@@ -3,21 +3,28 @@ module Spree
     include Rails.application.routes.url_helpers
     include Spree::BaseHelper
 
-    def initialize(variants)
-      @variants = variants
+    attr_reader :current_currency, :current_price_options, :current_store
+
+    def initialize(opts = {})
+      @variants = opts[:variants]
+      @is_product_available_in_currency = opts[:is_product_available_in_currency]
+      @current_currency = opts[:current_currency]
+      @current_price_options = opts[:current_price_options]
+      @current_store = opts[:current_store]
     end
 
     def call
       @variants.map do |variant|
-        is_product_available_in_currency = variant.product.price_in(variant.cost_currency) && !variant.product.price.nil?
         {
-          display_price: variant.display_price.to_s,
-          is_product_available_in_currency: is_product_available_in_currency,
+          display_price: display_price(variant),
+          price: variant.price_in(current_currency),
+          display_compare_at_price: display_compare_at_price(variant),
+          should_display_compare_at_price: should_display_compare_at_price(variant),
+          is_product_available_in_currency: @is_product_available_in_currency,
           backorderable: backorderable?(variant),
+          in_stock: in_stock?(variant),
           images: images(variant),
           option_values: option_values(variant),
-          category: variant.product.category&.name,
-          brand: variant.product.brand&.name,
         }.merge(
           variant_attributes(variant)
         )
@@ -27,18 +34,8 @@ module Spree
     def images(variant)
       variant.images.map do |image|
         {
-          viewable_type: image.viewable_type,
-          viewable_id: image.viewable_id,
-          attachment_width: image.attachment_width,
-          attachment_height: image.attachment_height,
-          attachment_file_size: image.attachment_file_size,
-          position: image.position,
-          attachment_content_type: image.attachment_content_type,
-          attachment_file_name: image.attachment_file_name,
-          type: image.type,
           alt: image.alt,
-          url_mini: url_for(image.url(:mini)),
-          url_product: url_for(image.url(:product))
+          url_product: rails_representation_url(image.url(:product), only_path: true)
         }
       end
     end
@@ -47,15 +44,8 @@ module Spree
       variant.option_values.map do |option_value|
         {
           id: option_value.id,
-          position: option_value.position,
           name: option_value.name,
           presentation: option_value.presentation,
-          option_type: {
-            id: option_value.option_type.id,
-            position: option_value.option_type.position,
-            name: option_value.option_type.name,
-            presentation: option_value.option_type.presentation
-          }
         }
       end
     end
@@ -67,30 +57,27 @@ module Spree
     end
 
     def backorderable_variant_ids
-      @backorderable_variant_ids ||= Spree::Variant.joins(:stock_items).where(id: @variants.map(&:id)).
-        where(spree_stock_items: { backorderable: true }).merge(Spree::StockItem.with_active_stock_location).distinct.ids
+      @backorderable_variant_ids ||= Spree::Variant.where(id: @variants.map(&:id)).backorderable.ids
+    end
+
+    def in_stock?(variant)
+      in_stock_variant_ids.include?(variant.id)
+    end
+
+    def in_stock_variant_ids
+      @in_stock_variant_ids ||= Spree::Variant.where(id: @variants.map(&:id)).in_stock.ids
     end
 
     def variant_attributes(variant)
       {
         id: variant.id,
         sku: variant.sku,
-        weight: variant.weight,
-        height: variant.height,
-        width: variant.width,
-        depth: variant.depth,
-        is_master: variant.is_master,
-        product_id: variant.product_id,
-        price: variant.price,
-        in_stock: variant.in_stock?,
-        purchasable: variant.purchasable?,
-        position: variant.position,
-        cost_currency: variant.cost_currency,
-        track_inventory: variant.track_inventory,
-        tax_category_id: variant.tax_category_id,
-        options_text: variant.options_text,
-        name: variant.name
+        purchasable: variant.purchasable?
       }
+    end
+
+    def should_display_compare_at_price(variant)
+      variant.compare_at_price.present? && variant.compare_at_price > variant.price
     end
   end
 end

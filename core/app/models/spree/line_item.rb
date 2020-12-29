@@ -17,7 +17,14 @@ module Spree
     before_validation :copy_tax_category
 
     validates :variant, :order, presence: true
-    validates :quantity, numericality: { only_integer: true, message: Spree.t('validation.must_be_int') }
+
+    # numericality: :less_than_or_equal_to validation is due to the restriction at the database level
+    #   https://github.com/spree/spree/issues/2695#issuecomment-143314161
+    validates :quantity, numericality: {
+      less_than_or_equal_to: DatabaseTypeUtilities.maximum_value_for(:integer),
+      only_integer: true, message: Spree.t('validation.must_be_int')
+    }
+
     validates :price, numericality: true
 
     validates_with Spree::Stock::AvailabilityValidator
@@ -50,7 +57,16 @@ module Spree
     end
 
     def update_price
-      self.price = variant.price_including_vat_for(tax_zone: tax_zone)
+      if Spree::Config.show_store_currency_selector == true
+        currency_price = Spree::Price.where(
+          currency: order.currency,
+          variant_id: variant_id
+        ).first
+
+        self.price = currency_price.price_including_vat_for(tax_zone: tax_zone)
+      else
+        self.price = variant.price_including_vat_for(tax_zone: tax_zone)
+      end
     end
 
     def copy_tax_category
@@ -59,7 +75,8 @@ module Spree
 
     extend DisplayMoney
     money_methods :amount, :subtotal, :discounted_amount, :final_amount, :total, :price,
-                  :adjustment_total, :additional_tax_total, :promo_total, :included_tax_total
+                  :adjustment_total, :additional_tax_total, :promo_total, :included_tax_total,
+                  :pre_tax_amount
 
     alias single_money display_price
     alias single_display_amount display_price

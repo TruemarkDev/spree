@@ -238,7 +238,7 @@ describe 'Order Details', type: :feature, js: true do
 
         it 'should warn you if you have not selected a location or shipment' do
           within_row(1) { click_icon :split }
-          accept_alert "Please select the split destination" do
+          accept_alert 'Please select the split destination' do
             click_icon :save
           end
         end
@@ -303,7 +303,7 @@ describe 'Order Details', type: :feature, js: true do
             select2 stock_location2.name, css: '.stock-item-split', search: true, match: :first
             fill_in 'item_quantity', with: 'ff'
 
-            page.accept_confirm "quantity is negative" do
+            page.accept_confirm 'quantity is negative' do
               click_icon :save
             end
 
@@ -319,7 +319,7 @@ describe 'Order Details', type: :feature, js: true do
             select2 stock_location2.name, css: '.stock-item-split', search: true, match: :first
             fill_in 'item_quantity', with: 0
 
-            page.accept_confirm "quantity is negative" do
+            page.accept_confirm 'quantity is negative' do
               click_icon :save
             end
 
@@ -329,7 +329,7 @@ describe 'Order Details', type: :feature, js: true do
 
             fill_in 'item_quantity', with: -1
 
-            page.accept_confirm "quantity is negative" do
+            page.accept_confirm 'quantity is negative' do
               click_icon :save
             end
 
@@ -362,7 +362,9 @@ describe 'Order Details', type: :feature, js: true do
               fill_in 'item_quantity', with: 2
 
               click_icon :save
-              expect(page).not_to have_css('tr.stock-item-split')
+              alert_text = page.driver.browser.switch_to.alert.text
+              expect(alert_text).to eq('Desired shipment has not enough stock in desired stock location')
+              accept_alert { order.reload }
 
               expect(order.shipments.count).to eq(1)
               expect(order.shipments.first.inventory_units_for(product.master).sum(&:quantity)).to eq(2)
@@ -427,7 +429,8 @@ describe 'Order Details', type: :feature, js: true do
                 click_icon :add
               end
 
-              expect(page).to have_css('[data-hook="add_product_name"]', text: 'Choose a variant')
+              expect(page).to have_content(order.number)
+              expect(page).to have_css('[data-hook="add_product_name"]', text: 'Name or SKU (enter at least first 3 characters of product name)')
 
               within('[data-hook=admin_order_form_fields]') do
                 expect(page).to have_content(tote.name)
@@ -514,8 +517,9 @@ describe 'Order Details', type: :feature, js: true do
             fill_in 'item_quantity', with: 200
 
             click_icon :save
-            expect(page).not_to have_css('tr.stock-item-split')
-            order.reload
+            alert_text = page.driver.browser.switch_to.alert.text
+            expect(alert_text).to eq('Desired shipment has not enough stock in desired stock location')
+            accept_alert { order.reload }
 
             expect(order.shipments.count).to eq(2)
             expect(order.shipments.first.inventory_units_for(product.master).sum(&:quantity)).to eq(1)
@@ -527,7 +531,7 @@ describe 'Order Details', type: :feature, js: true do
             select2 order.shipments.first.number, css: '.stock-item-split', search: true, match: :first
             fill_in 'item_quantity', with: 1
 
-            page.accept_confirm "target shipment is the same as original shipment" do
+            page.accept_confirm 'target shipment is the same as original shipment' do
               click_icon :save
             end
 

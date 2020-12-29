@@ -4,8 +4,10 @@ module Spree
       class BaseController < ActionController::API
         include CanCan::ControllerAdditions
         include Spree::Core::ControllerHelpers::StrongParameters
+        include Spree::Core::ControllerHelpers::Store
         rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
         rescue_from CanCan::AccessDenied, with: :access_denied
+        rescue_from Spree::Core::GatewayError, with: :gateway_error
 
         def content_type
           Spree::Api::Config[:api_v2_content_type]
@@ -50,12 +52,13 @@ module Spree
           end
         end
 
-        def spree_current_store
-          @spree_current_store ||= Spree::Store.current(request.env['SERVER_NAME'])
-        end
-
         def spree_current_user
-          @spree_current_user ||= Spree.user_class.find_by(id: doorkeeper_token.resource_owner_id) if doorkeeper_token
+          return nil unless doorkeeper_token
+          return @spree_current_user if @spree_current_user
+
+          doorkeeper_authorize!
+
+          @spree_current_user ||= Spree.user_class.find_by(id: doorkeeper_token.resource_owner_id)
         end
 
         def spree_authorize!(action, subject, *args)
@@ -104,16 +107,16 @@ module Spree
           fields.presence
         end
 
-        def current_currency
-          spree_current_store.default_currency || Spree::Config[:currency]
-        end
-
         def record_not_found
           render_error_payload(I18n.t(:resource_not_found, scope: 'spree.api'), 404)
         end
 
         def access_denied(exception)
           render_error_payload(exception.message, 403)
+        end
+
+        def gateway_error(exception)
+          render_error_payload(exception.message)
         end
       end
     end

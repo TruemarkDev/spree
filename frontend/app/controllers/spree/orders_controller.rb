@@ -1,6 +1,8 @@
 module Spree
   class OrdersController < Spree::StoreController
+    before_action :set_current_order
     before_action :check_authorization
+
     helper 'spree/products', 'spree/orders'
 
     respond_to :html

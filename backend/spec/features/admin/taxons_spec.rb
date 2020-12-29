@@ -38,7 +38,7 @@ describe 'Taxonomies and taxons', type: :feature do
     find('.product').hover
     find('.product .dropdown-toggle').click
 
-    click_link 'Delete From Taxon'
+    click_link 'Remove'
 
     expect(page).not_to have_css('.product')
 
@@ -49,6 +49,8 @@ describe 'Taxonomies and taxons', type: :feature do
   end
 
   def select_clothing_from_select2
-    select2 'Clothing', css: '.taxon-products-view', search: true
+    select2_open css: '.taxon-products-view'
+    select2_search 'Clothing', css: '.taxon-products-view'
+    select2_select Spree::Product.first.taxons.first&.pretty_name, css: '.taxon-products-view'
   end
 end

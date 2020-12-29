@@ -1,8 +1,10 @@
 module Spree
   module Variants
     class OptionTypesPresenter
-      def initialize(option_types)
+      def initialize(option_types, variants, product)
         @option_types = option_types
+        @variant_ids = variants.map(&:id)
+        @product = product
       end
 
       def default_variant
@@ -29,7 +31,7 @@ module Spree
         return {} if option_types.empty?
 
         @default_variant_data ||= begin
-          find_in_stock_variant_data || find_backorderable_variant_data || find_first_variant_data
+          try_default_variant || find_in_stock_variant_data || find_backorderable_variant_data || find_first_variant_data
         end
       end
 
@@ -43,7 +45,17 @@ module Spree
 
       def find_variant_data(&block)
         option_types.first.option_values.each do |option_value|
-          variant = option_value.variants.find(&block)
+          variant = option_value.variants.where(id: @variant_ids).order(:position).find(&block)
+
+          return { variant: variant, option_value: option_value } if variant
+        end
+
+        nil
+      end
+
+      def try_default_variant
+        option_types.first.option_values.each do |option_value|
+          variant = option_value.variants.where(id: @product.default_variant_id).first
 
           return { variant: variant, option_value: option_value } if variant
         end
@@ -53,7 +65,7 @@ module Spree
 
       def find_first_variant_data
         option_value = option_types.first.option_values.first
-        variant = option_value.variants.first
+        variant = option_value.variants.where(id: @variant_ids).order(:position).first
 
         { variant: variant, option_value: option_value }
       end
@@ -64,7 +76,8 @@ module Spree
             id: option_value.id,
             position: option_value.position,
             presentation: option_value.presentation,
-            variant_id: option_value.variants.first.id,
+            name: option_value.name,
+            variant_id: option_value.variants.where(id: @variant_ids).order(:position).first.id,
             is_default: option_value == default_variant_data[:option_value]
           }
         end

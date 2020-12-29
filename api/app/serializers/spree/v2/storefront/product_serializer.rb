@@ -5,12 +5,13 @@ module Spree
         set_type :product
 
         attributes :name, :description, :price, :currency, :display_price,
-                   :available_on, :slug, :meta_description, :meta_keywords,
-                   :updated_at
+                   :compare_at_price, :display_compare_at_price, :available_on,
+                   :slug, :meta_description, :meta_keywords, :updated_at
 
         attribute :purchasable,   &:purchasable?
         attribute :in_stock,      &:in_stock?
         attribute :backorderable, &:backorderable?
+        attribute :available,     &:available?
 
         has_many :variants
         has_many :option_types

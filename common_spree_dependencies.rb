@@ -23,21 +23,23 @@ group :test do
   gem 'capybara-select-2'
   gem 'database_cleaner', '~> 1.3'
   gem 'email_spec'
-  gem 'factory_bot_rails', '~> 5.0'
+  gem 'factory_bot_rails', '~> 6.0'
   gem 'rspec-activemodel-mocks', '~> 1.0'
   gem 'rspec-rails', '~> 4.0.0.beta2'
   gem 'rspec-retry'
   gem 'rspec_junit_formatter'
   gem 'jsonapi-rspec'
-  gem 'simplecov'
+  gem 'simplecov', '0.17.1'
   gem 'webmock', '~> 3.7'
   gem 'timecop'
   gem 'rails-controller-testing'
 end
 
 group :test, :development do
-  gem 'rubocop', '~> 0.60.0', require: false
+  gem 'rubocop', '~> 1.0.0', require: false # bumped
   gem 'rubocop-rspec', require: false
   gem 'pry-byebug'
   gem 'webdrivers', '~> 4.1'
 end
+
+gem 'solargraph', group: :development

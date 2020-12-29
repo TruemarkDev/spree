@@ -48,9 +48,7 @@ export default class Header extends React.PureComponent {
   }
 
   isApiSectionActive = () =>
-    this.isActive('api') ||
-    this.isActive('api/overview') ||
-    this.isActive('api/v2')
+    this.isActive('api')
 
   render() {
     return (
@@ -79,7 +77,7 @@ export default class Header extends React.PureComponent {
             <NavItem
               text="API"
               isActive={this.isApiSectionActive()}
-              url="/api/overview/"
+              url="https://api.spreecommerce.org/"
             />
             <NavItem
               text="Developer"
@@ -96,7 +94,7 @@ export default class Header extends React.PureComponent {
               isActive={this.isActive('release_notes')}
               url="/release_notes/"
             />
-            <NavItem url="https://new-ux.spreecommerce.org/">Demo</NavItem>
+            <NavItem url="https://demo.spreecommerce.org/">Demo</NavItem>
 
             <NavItem url="https://spreecommerce.org/contact/">
               Contact Us
@@ -157,7 +155,7 @@ export default class Header extends React.PureComponent {
               <NavItem
                 text="API"
                 isActive={this.isApiSectionActive()}
-                url="/api/overview/"
+                url="https://api.spreecommerce.org/"
               >
                 {this.isApiSectionActive() && (
                   <Sidebar nav={this.props.nav} isMobile />
