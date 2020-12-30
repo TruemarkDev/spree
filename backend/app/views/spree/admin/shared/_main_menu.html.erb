@@ -23,12 +23,6 @@
     </ul>
   <% end %>
 
-  <% if can? :admin, Spree::Admin::ReportsController %>
-    <ul class="nav nav-sidebar border-bottom">
-      <%= tab *Spree::BackendConfiguration::REPORT_TABS, icon: 'file'  %>
-    </ul>
-  <% end %>
-
   <% if can? :admin, Spree::Promotion %>
     <ul class="nav nav-sidebar border-bottom">
       <%= main_menu_tree Spree.t(:promotions), icon: "gift", sub_menu: "promotion", url: "#sidebar-promotions" %>

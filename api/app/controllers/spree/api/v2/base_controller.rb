@@ -7,6 +7,7 @@ module Spree
         include Spree::Core::ControllerHelpers::Store
         rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
         rescue_from CanCan::AccessDenied, with: :access_denied
+        rescue_from Spree::Core::GatewayError, with: :gateway_error
 
         def content_type
           Spree::Api::Config[:api_v2_content_type]
@@ -52,7 +53,12 @@ module Spree
         end
 
         def spree_current_user
-          @spree_current_user ||= Spree.user_class.find_by(id: doorkeeper_token.resource_owner_id) if doorkeeper_token
+          return nil unless doorkeeper_token
+          return @spree_current_user if @spree_current_user
+
+          doorkeeper_authorize!
+
+          @spree_current_user ||= Spree.user_class.find_by(id: doorkeeper_token.resource_owner_id)
         end
 
         def spree_authorize!(action, subject, *args)
@@ -107,6 +113,10 @@ module Spree
 
         def access_denied(exception)
           render_error_payload(exception.message, 403)
+        end
+
+        def gateway_error(exception)
+          render_error_payload(exception.message)
         end
       end
     end

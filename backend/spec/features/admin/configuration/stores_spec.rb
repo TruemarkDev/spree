@@ -3,7 +3,9 @@ require 'spec_helper'
 describe 'Stores admin', type: :feature, js: true do
   stub_authorization!
 
-  let!(:store) { create(:store) }
+  let!(:store) { create(:store, checkout_zone_id: zone.id) }
+  let!(:zone) { create(:zone, name: 'EU_VAT') }
+  let!(:no_limits) { create(:zone, name: 'No Limits') }
 
   describe 'visiting the stores page' do
     it 'is on the stores page' do
@@ -19,13 +21,47 @@ describe 'Stores admin', type: :feature, js: true do
   end
 
   describe 'creating store' do
+    context 'with checkout_zone set as preference in spree config file' do
+      let!(:zone) { create(:zone, name: 'Asia') }
+
+      before do
+        store.update(checkout_zone_id: nil)
+        Spree::Config[:checkout_zone] = 'Asia'
+      end
+
+      it 'sets default zone' do
+        visit spree.admin_stores_path
+
+        click_link 'New Store'
+
+        expect(page).to have_current_path(spree.new_admin_store_path)
+        expect(page).to have_selector(:id, 'select2-store_checkout_zone_id-container', text: 'Asia')
+      end
+    end
+
+    context 'without checkout_zone set as preference in spree config file' do
+      before do
+        store.update(checkout_zone_id: nil)
+        Spree::Config.preference_default(:checkout_zone)
+      end
+
+      it 'sets default zone' do
+        visit spree.admin_stores_path
+
+        click_link 'New Store'
+
+        expect(page).to have_current_path(spree.new_admin_store_path)
+        expect(page).to have_selector(:id, 'select2-store_checkout_zone_id-container', text: 'No Limits')
+      end
+    end
+
     it 'sets default currency value' do
       visit spree.admin_stores_path
 
       click_link 'New Store'
 
       expect(page).to have_current_path(spree.new_admin_store_path)
-      expect(page).to have_selector(:id, 's2id_store_default_currency', text: 'United States Dollar (USD)')
+      expect(page).to have_selector(:id, 'select2-store_default_currency-container', text: 'United States Dollar (USD)')
     end
 
     it 'saving store' do
@@ -34,7 +70,9 @@ describe 'Stores admin', type: :feature, js: true do
       click_link 'New Store'
       page.fill_in 'store_name', with: 'Spree Example Test'
       page.fill_in 'store_url', with: 'test.localhost'
-      page.fill_in 'store_mail_from_address', with: 'spree@example.com'
+      page.fill_in 'store_code', with: 'spree'
+      page.fill_in 'store_mail_from_address', with: 'no-reply@example.com'
+      page.fill_in 'store_customer_support_email', with: 'support@example.com'
       select2 'EUR', from: 'Currency'
       click_button 'Create'
 
@@ -64,7 +102,23 @@ describe 'Stores admin', type: :feature, js: true do
       store_table = page.find('table')
       expect(store_table).to have_content(updated_name)
       expect(store_table).to have_content(new_currency)
-      expect(store.reload.name).to eq updated_name
+      store.reload
+      expect(store.name).to eq updated_name
+      expect(store.default_currency).to eq new_currency
+    end
+
+    it 'lets me enable new order notifications by setting a notification email address' do
+      store_owner_email = 'new-order-notifications@example.com'
+      visit spree.admin_stores_path
+
+      within_row(1) do
+        click_icon :edit
+      end
+      page.fill_in 'store_new_order_notifications_email', with: store_owner_email
+      click_button 'Update'
+
+      store.reload
+      expect(store.new_order_notifications_email).to eq(store_owner_email)
     end
   end
 
@@ -89,7 +143,7 @@ describe 'Stores admin', type: :feature, js: true do
     it 'sets a store as default' do
       visit spree.admin_stores_path
       within_row(2) do
-        click_icon :ok
+        click_icon :save
       end
 
       expect(store.reload.default).to eq false

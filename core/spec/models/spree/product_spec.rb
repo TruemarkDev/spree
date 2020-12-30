@@ -470,7 +470,7 @@ describe Spree::Product, type: :model do
   context '#images' do
     let(:product) { create(:product) }
     let(:file) { File.open(File.expand_path('../../fixtures/thinking-cat.jpg', __dir__)) }
-    let(:params) { { viewable_id: product.master.id, viewable_type: 'Spree::Variant', attachment: file, alt: 'position 2', position: 2 } }
+    let(:params) { { viewable_id: product.master.id, viewable_type: 'Spree::Variant', alt: 'position 2', position: 2 } }
 
     before do
       images = [
@@ -698,6 +698,27 @@ describe Spree::Product, type: :model do
       it 'returns master variant ID' do
         expect(product.default_variant_id).to eq(product.master.id)
       end
+    end
+  end
+end
+
+describe '#default_variant_cache_key' do
+  let(:product) { create(:product) }
+  let(:key) { product.send(:default_variant_cache_key) }
+
+  context 'with inventory tracking' do
+    before { Spree::Config[:track_inventory_levels] = true }
+
+    it 'returns proper key' do
+      expect(key).to eq("spree/default-variant/#{product.cache_key_with_version}/true")
+    end
+  end
+
+  context 'without invenrtory tracking' do
+    before { Spree::Config[:track_inventory_levels] = false }
+
+    it 'returns proper key' do
+      expect(key).to eq("spree/default-variant/#{product.cache_key_with_version}/false")
     end
   end
 end

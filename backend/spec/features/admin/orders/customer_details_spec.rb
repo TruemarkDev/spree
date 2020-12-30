@@ -71,7 +71,7 @@ describe 'Customer Details', type: :feature, js: true do
     end
 
     context 'selected country has no state' do
-      before { create(:country, iso: 'BRA', name: 'Brazil') }
+      before { create(:country, iso: 'BRA', name: 'Brazil', states_required: true) }
 
       it 'changes state field to text input' do
         click_link 'Customer'
@@ -148,11 +148,11 @@ describe 'Customer Details', type: :feature, js: true do
     fill_in 'First Name',              with: 'John 99'
     fill_in 'Last Name',               with: 'Doe'
     fill_in 'Company',                 with: 'Company'
-    fill_in 'Street Address',          with: '100 first lane'
-    fill_in "Street Address (cont'd)", with: '#101'
+    fill_in 'Address',                 with: '100 first lane'
+    fill_in 'Address (contd.)',        with: '#101'
     select2 country.name,              from: 'Country'
     fill_in 'City',                    with: 'Bethesda'
-    fill_in 'Zip',                     with: '20170'
+    fill_in 'Zip Code',                with: '20170'
     select2 state.name,                from: 'State'
     fill_in 'Phone',                   with: '123-456-7890'
   end
