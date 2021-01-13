@@ -11,7 +11,7 @@
 //= require jquery.jstree/jquery.jstree
 //= require jquery_ujs
 //= require jquery-ui/widgets/autocomplete
-//= require select2-full
+//= require select2
 //= require underscore-min.js
 //= require chart
 //= require dayjs.min
@@ -53,7 +53,6 @@
 //= require spree/backend/taxons
 //= require spree/backend/users/edit
 //= require spree/backend/user_picker
-//= require spree/backend/tag_picker
 //= require spree/backend/variant_autocomplete
 //= require spree/backend/variant_management
 //= require spree/backend/zone
